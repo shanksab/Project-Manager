@@ -32,8 +32,13 @@ o	Contraintes/règles de gestion : La modification doit être enregistrée immé
 4.	Objectif : Marquer une tâche comme terminée
    
 o	Description : L’employé doit pouvoir marquer une tâche comme terminée et la déplacer dans la section "terminée".
+
 o	Contraintes/règles de gestion : La tâche doit changer de statut et être déplacée automatiquement.
+
+
+
 Besoins non fonctionnels :
+
 1.	Performance : Le temps de réponse de l’application ne doit pas dépasser 2 secondes pour chaque action utilisateur.
 2.	Fiabilité : L’application doit garantir une disponibilité sur une période de 24h/24h.
 3.	Sécurité : Les données des utilisateurs doivent être sécurisées par un hashage de mot de passe , et l’accès doit être restreint par un système d’authentification. 
