@@ -302,7 +302,7 @@ const Teams = () => {
                    flex flex-col h-full"
       >
         {/* Modern Header with Accent */}
-        <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-500" />
+        <div className="h-2 bg-blue-500" />
         
         {/* Content Container */}
         <div className="p-6 flex-1 flex flex-col">
