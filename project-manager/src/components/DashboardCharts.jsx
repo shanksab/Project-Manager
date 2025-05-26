@@ -1,222 +1,381 @@
 import React from 'react';
-import { Doughnut, Line } from 'react-chartjs-2';
+import { Pie, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
   Title,
-  Tooltip,
-  Legend,
-  ArcElement
+  Filler
 } from 'chart.js';
 
-// Register ChartJS components
 ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
   Title,
-  Tooltip,
-  Legend,
-  ArcElement
+  Filler
 );
 
-const DashboardCharts = ({ projects }) => {
-  // Task Status Breakdown data calculation
-  const taskStatusData = {
-    todo: 0,
-    inProgress: 0,
-    done: 0
-  };
-
+function getCumulativeCompletedTasks(projects) {
+  // Collect all completed tasks with their completion date
+  let completed = [];
   projects.forEach(project => {
-    project.tasks.forEach(task => {
-      if (task.completed) {
-        taskStatusData.done += 1;
-      } else if (task.status === 'in_progress') {
-        taskStatusData.inProgress += 1;
-      } else {
-        taskStatusData.todo += 1;
-      }
-    });
+    if (Array.isArray(project.tasks)) {
+      project.tasks.forEach(task => {
+        if (task.completed && task.completedAt) {
+          completed.push(task.completedAt.split('T')[0]); // Use only the date part
+        }
+      });
+    }
   });
+  // Count cumulative per day
+  const dateCounts = {};
+  completed.forEach(date => {
+    dateCounts[date] = (dateCounts[date] || 0) + 1;
+  });
+  // Sort dates
+  const sortedDates = Object.keys(dateCounts).sort();
+  let cumulative = 0;
+  const labels = [];
+  const data = [];
+  sortedDates.forEach(date => {
+    cumulative += dateCounts[date];
+    labels.push(date);
+    data.push(cumulative);
+  });
+  return { labels, data, total: cumulative };
+}
 
-  // Doughnut chart data
-  const doughnutData = {
-    labels: ['To Do', 'In Progress', 'Done'],
-    datasets: [
-      {
-        data: [taskStatusData.todo, taskStatusData.inProgress, taskStatusData.done],
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.8)', // red
-          'rgba(59, 130, 246, 0.8)', // blue
-          'rgba(34, 197, 94, 0.8)', // green
-        ],
-        borderColor: [
-          'rgba(239, 68, 68, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(34, 197, 94, 1)',
-        ],
-        borderWidth: 1,
+const DashboardCharts = ({ projects }) => {
+  // Calculate task distribution
+  const completedTasks = projects.filter(p => p.status === 'Completed').length;
+  const inProgressTasks = projects.filter(p => p.status === 'In Progress').length;
+  const notStartedTasks = projects.filter(p => p.status === 'Not Started').length;
+
+  const pieChartData = {
+    labels: ['Completed', 'In Progress', 'Not Started'],
+    datasets: [{
+      data: [completedTasks, inProgressTasks, notStartedTasks],
+      backgroundColor: [
+        'rgb(34, 197, 94)',  // green-500
+        'rgb(59, 130, 246)', // blue-500
+        'rgb(96, 165, 250)', // blue-400
+      ],
+      borderColor: [
+        'rgb(22, 163, 74)',  // green-600
+        'rgb(37, 99, 235)',  // blue-600
+        'rgb(59, 130, 246)', // blue-500
+      ],
+      borderWidth: 2,
+      hoverOffset: 15,
+      hoverBorderWidth: 3,
+    }]
+  };
+
+  // Sort projects by creation date
+  const sortedProjects = [...projects].sort((a, b) => 
+    new Date(a.created_at) - new Date(b.created_at)
+  );
+
+  // Create gradient for line chart
+  const createGradient = (ctx) => {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+    return gradient;
+  };
+
+  const lineChartData = {
+    labels: sortedProjects.map(project => project.title),
+    datasets: [{
+      label: 'Project Progress',
+      data: sortedProjects.map(project => project.progress),
+      fill: true,
+      backgroundColor: (context) => {
+        const chart = context.chart;
+        const { ctx, chartArea } = chart;
+        if (!chartArea) {
+          return 'rgba(59, 130, 246, 0.2)';
+        }
+        return createGradient(ctx);
       },
-    ],
+      borderColor: 'rgba(59, 130, 246, 1)',
+      borderWidth: 3,
+      tension: 0.4,
+      pointBackgroundColor: 'white',
+      pointBorderColor: 'rgba(59, 130, 246, 1)',
+      pointBorderWidth: 2,
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      pointHoverBackgroundColor: 'white',
+      pointHoverBorderColor: 'rgba(59, 130, 246, 1)',
+      pointHoverBorderWidth: 3,
+    }]
   };
 
-  // Generate sample progress data for the last 14 days
-  const today = new Date();
-  const last14Days = Array.from({ length: 14 }, (_, i) => {
-    const date = new Date();
-    date.setDate(today.getDate() - (13 - i));
-    return date.toISOString().split('T')[0];
-  });
-
-  // Generate realistic sample progress data
-  const sampleProgressData = (() => {
-    let total = 0;
-    return last14Days.map((_, index) => {
-      // Add between 2-5 completed tasks per day
-      const dailyCompleted = Math.floor(Math.random() * 4) + 2;
-      total += dailyCompleted;
-      return total;
-    });
-  })();
-
-  // Progress Line chart data
-  const progressChartData = {
-    labels: last14Days.map(date => {
-      const d = new Date(date);
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    }),
-    datasets: [
-      {
-        label: 'Completed Tasks',
-        data: sampleProgressData,
-        borderColor: 'rgba(34, 197, 94, 1)', // green
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 4,
-        pointBackgroundColor: 'rgba(34, 197, 94, 1)',
-        pointBorderColor: 'white',
-        pointBorderWidth: 2,
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        titleColor: '#1F2937',
+        bodyColor: '#4B5563',
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: false,
+        callbacks: {
+          label: function(context) {
+            return `Progress: ${context.raw}%`;
+          },
+          title: function(context) {
+            return context[0].label;
+          }
+        }
       }
-    ],
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          callback: function(value) {
+            return value + '%';
+          },
+          font: {
+            size: 12,
+            family: "'Inter', sans-serif",
+            weight: '500'
+          },
+          padding: 10,
+          color: '#6B7280'
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)',
+          drawBorder: false,
+          borderDash: [5, 5]
+        },
+        border: {
+          display: false
+        }
+      },
+      x: {
+        ticks: {
+          font: {
+            size: 12,
+            family: "'Inter', sans-serif",
+            weight: '500'
+          },
+          padding: 10,
+          color: '#6B7280',
+          maxRotation: 45,
+          minRotation: 45
+        },
+        grid: {
+          display: false
+        },
+        border: {
+          display: false
+        }
+      }
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
+    animation: {
+      duration: 2000,
+      easing: 'easeInOutQuart'
+    }
   };
 
-  const doughnutOptions = {
+  const pieChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'bottom',
         labels: {
-          padding: 20,
           usePointStyle: true,
+          padding: 20,
+          font: {
+            size: 14,
+            family: "'Inter', sans-serif",
+            weight: '500'
+          },
+          color: '#4B5563'
         }
       },
       tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        titleColor: '#1F2937',
+        bodyColor: '#4B5563',
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+        padding: 12,
+        boxPadding: 6,
+        usePointStyle: true,
         callbacks: {
-          label: (context) => {
+          label: function(context) {
             const label = context.label || '';
             const value = context.raw || 0;
-            const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
-            const percentage = ((value / total) * 100).toFixed(1);
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = Math.round((value / total) * 100);
             return `${label}: ${value} (${percentage}%)`;
           }
         }
       }
     },
-    cutout: '65%',
+    cutout: '60%',
+    animation: {
+      animateScale: true,
+      animateRotate: true
+    }
   };
 
-  const progressOptions = {
+  // Fallback: if no completedAt, use created_at or today
+  const fallbackToday = () => new Date().toISOString().split('T')[0];
+  let hasCompletedAt = false;
+  projects.forEach(project => {
+    if (Array.isArray(project.tasks)) {
+      project.tasks.forEach(task => {
+        if (task.completed && task.completedAt) hasCompletedAt = true;
+      });
+    }
+  });
+  // If no completedAt, fake some data for demo
+  let chartData;
+  if (hasCompletedAt) {
+    chartData = getCumulativeCompletedTasks(projects);
+  } else {
+    // Demo: generate 14 days of fake progress
+    const today = new Date();
+    const labels = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - 13 + i);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    const data = labels.map((_, i) => Math.round((i + 1) * 3 + Math.random() * 2));
+    chartData = { labels, data, total: data[data.length - 1] };
+  }
+
+  const lineData = {
+    labels: chartData.labels,
+    datasets: [
+      {
+        label: 'Total Completed Tasks',
+        data: chartData.data,
+        fill: true,
+        backgroundColor: 'rgba(34,197,94,0.12)', // green-500, light fill
+        borderColor: 'rgb(34,197,94)', // green-500
+        pointBackgroundColor: 'white',
+        pointBorderColor: 'rgb(34,197,94)',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        borderWidth: 3,
+      },
+    ],
+  };
+
+  const lineOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: false,
+      legend: { display: false },
+      title: {
+        display: true,
+        text: 'Progress Over Time',
+        align: 'center',
+        font: { size: 20, weight: 'bold', family: 'Inter, sans-serif' },
+        color: '#22223b',
+        padding: { bottom: 20 },
       },
       tooltip: {
-        callbacks: {
-          label: (context) => {
-            return `Total Completed: ${context.raw} tasks`;
-          }
-        }
-      }
+        backgroundColor: 'white',
+        titleColor: '#22223b',
+        bodyColor: '#22223b',
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: false,
+      },
     },
     scales: {
       x: {
-        grid: {
+        title: {
           display: false,
         },
         ticks: {
+          color: '#22223b',
+          font: { size: 12, family: 'Inter, sans-serif' },
           maxRotation: 45,
-          minRotation: 45
-        }
+          minRotation: 45,
+        },
+        grid: { color: 'rgba(0,0,0,0.04)' },
       },
       y: {
-        beginAtZero: true,
-        grid: {
-          color: 'rgba(0, 0, 0, 0.1)',
-        },
-        ticks: {
-          stepSize: 5,
-          precision: 0
-        },
         title: {
           display: true,
-          text: 'Total Completed Tasks'
-        }
-      }
-    }
+          text: 'Total Completed Tasks',
+          font: { size: 14, family: 'Inter, sans-serif' },
+          color: '#22223b',
+        },
+        beginAtZero: true,
+        ticks: {
+          color: '#22223b',
+          font: { size: 12, family: 'Inter, sans-serif' },
+        },
+        grid: { color: 'rgba(0,0,0,0.04)' },
+      },
+    },
   };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Task Status Breakdown */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-          Task Status Breakdown
-        </h3>
-        <div className="h-[300px] relative">
-          <Doughnut data={doughnutData} options={doughnutOptions} />
+      <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center justify-center">
+        <h3 className="text-[24px] mb-[25px] ml-[-50px] font-bold font-sans text-[#22223b] text-left pb-5">Task Distribution</h3>
+        <div className="relative flex items-center justify-center h-[380px] w-full">
+          <Pie data={pieChartData} options={pieChartOptions} />
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {[
-            { label: 'To Do', value: taskStatusData.todo },
-            { label: 'In Progress', value: taskStatusData.inProgress },
-            { label: 'Done', value: taskStatusData.done }
-          ].map((item) => (
-            <div key={item.label} className="text-center">
-              <div className="text-lg font-bold text-gray-900 dark:text-white">
-                {item.value}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {item.label}
-              </div>
-            </div>
-          ))}
+        <div className="mt-2 grid grid-cols-3 gap-4 text-center w-full">
+          <div>
+            <div className="text-2xl font-bold text-green-600">{completedTasks}</div>
+            <div className="text-sm text-gray-600">Completed</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-blue-600">{inProgressTasks}</div>
+            <div className="text-sm text-gray-600">In Progress</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-blue-500">{notStartedTasks}</div>
+            <div className="text-sm text-gray-600">Not Started</div>
+          </div>
         </div>
       </div>
-
-      {/* Progress Over Time */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-          Progress Over Time
-        </h3>
-        <div className="h-[300px] relative">
-          <Line data={progressChartData} options={progressOptions} />
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="relative h-[450px]">
+          <Line data={lineData} options={lineOptions} />
         </div>
-        <div className="mt-4 text-center">
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
-            {sampleProgressData[sampleProgressData.length - 1]}
-          </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Total Completed Tasks
-          </div>
+        <div className="flex flex-col items-center mt-8 mb-2">
+          <div className="text-4xl font-bold text-gray-900">{chartData.total}</div>
+          <div className="text-blue-600 text-[24px] font-medium mt-1">Total Completed Tasks</div>
         </div>
       </div>
     </div>

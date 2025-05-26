@@ -1,77 +1,69 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 const ProjectCard = ({ project }) => {
-  const { title, description, progress, teamMembers, dueDate } = project;
-  const progressBarRef = useRef(null);
+  // Default values if project data is missing
+  const {
+    title = 'Untitled Project',
+    description = 'No description available',
+    status = 'Not Started',
+    progress = 0,
+    tasks = [],
+    team_members = [],
+    due_date = null
+  } = project || {};
 
-  useEffect(() => {
-    if (progressBarRef.current) {
-      progressBarRef.current.style.width = '0%';
-      setTimeout(() => {
-        progressBarRef.current.style.width = `${progress}%`;
-      }, 100);
-    }
-  }, [progress]);
-
-  const getDueDateStatus = () => {
-    if (!dueDate) return null;
-    const today = new Date();
-    const due = new Date(dueDate);
-    const diffTime = due - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) {
-      return { text: 'Overdue', color: 'text-red-600' };
-    } else if (diffDays <= 7) {
-      return { text: 'Due soon', color: 'text-yellow-600' };
-    } else {
-      return { text: 'On track', color: 'text-green-600' };
-    }
+  // Super simple date display
+  const showDate = (dateString) => {
+    if (!dateString) return 'No due date';
+    return dateString.split('T')[0]; // Just show YYYY-MM-DD
   };
-
-  const dueDateStatus = getDueDateStatus();
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold">{title}</h3>
-        <div className="flex items-center gap-2">
-          {dueDateStatus && (
-            <span className={`text-sm font-medium ${dueDateStatus.color}`}>
-              {dueDateStatus.text}
-            </span>
-          )}
-          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-            {progress}%
-          </span>
-        </div>
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <span className={`px-2 py-1 rounded text-sm ${
+          status === 'Completed' ? 'bg-green-100 text-green-800' :
+          status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+          'bg-yellow-100 text-yellow-800'
+        }`}>
+          {status}
+        </span>
       </div>
+      
       <p className="text-gray-600 mb-4">{description}</p>
+      
       <div className="mb-4">
-        <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-          <div
-            ref={progressBarRef}
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-1000 ease-out"
-            style={{ width: '0%' }}
+        <div className="flex justify-between text-sm text-gray-600 mb-1">
+          <span>Progress</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-blue-500 h-2 rounded-full" 
+            style={{ width: `${progress}%` }}
           ></div>
         </div>
       </div>
-      <div className="flex justify-between items-center">
-        <div className="flex -space-x-2">
-          {teamMembers.map((member, index) => (
-            <div
-              key={index}
-              className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold border-2 border-white"
-            >
-              {member.charAt(0)}
-            </div>
-          ))}
+
+      <div className="flex flex-col gap-2 text-sm text-gray-600">
+        <div className="flex justify-between">
+          <span>Due Date:</span>
+          <span className="font-medium">{showDate(due_date)}</span>
         </div>
-        {dueDate && (
-          <span className="text-sm text-gray-600">
-            Due: {new Date(dueDate).toLocaleDateString()}
-          </span>
-        )}
+        <div className="flex justify-between">
+          <span>Tasks: {tasks.length}</span>
+          <span>Members: {team_members.length}</span>
+        </div>
+        <div className="flex justify-end mt-2">
+          <Link 
+            to={`/projects/${project?.id || '1'}`}
+            className="text-blue-500 hover:text-blue-600"
+          >
+            View Details
+          </Link>
+        </div>
       </div>
     </div>
   );

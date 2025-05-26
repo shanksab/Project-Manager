@@ -9,34 +9,6 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 
 function App() {
-  // Initialize with some sample data
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      title: 'Website Redesign',
-      description: 'Redesign company website with modern UI',
-      progress: 65,
-      tasks: [
-        { id: 1, text: 'Design mockups', completed: true },
-        { id: 2, text: 'Implement frontend', completed: false }
-      ],
-      teamMembers: ['John Doe', 'Jane Smith'],
-      dueDate: '2024-04-01'
-    },
-    {
-      id: 2,
-      title: 'Mobile App Development',
-      description: 'Develop iOS and Android apps',
-      progress: 30,
-      tasks: [
-        { id: 3, text: 'Setup development environment', completed: true },
-        { id: 4, text: 'Create basic UI', completed: false }
-      ],
-      teamMembers: ['Mike Johnson', 'Sarah Wilson'],
-      dueDate: '2024-05-15'
-    }
-  ]);
-
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -72,10 +44,6 @@ function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
-
-  const handleAddProject = (newProject) => {
-    setProjects([...projects, { ...newProject, id: projects.length + 1 }]);
-  };
 
   const notifications = [
     { id: 1, text: 'New project assigned', time: '5m ago' },
@@ -234,7 +202,7 @@ function App() {
           element={
             isAuthenticated ? (
               <AuthenticatedLayout>
-                <Dashboard projects={projects} onAddProject={handleAddProject} />
+                <Dashboard />
               </AuthenticatedLayout>
             ) : (
               <Navigate to="/login" replace />
@@ -246,7 +214,7 @@ function App() {
           element={
             isAuthenticated ? (
               <AuthenticatedLayout>
-                <Projects projects={projects} onAddProject={handleAddProject} />
+                <Projects />
               </AuthenticatedLayout>
             ) : (
               <Navigate to="/login" replace />

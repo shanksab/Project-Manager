@@ -4,18 +4,74 @@ import ProjectCard from '../components/ProjectCard';
 import TaskList from '../components/TaskList';
 import NewProjectForm from '../components/NewProjectForm';
 
-const Projects = ({ projects, onAddProject, onTaskUpdate }) => {
+const Projects = () => {
+  const [projects, setProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeProject, setActiveProject] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [filterStatus, setFilterStatus] = useState('all');
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        console.log('Fetching projects...');
+        const response = await fetch('http://localhost:8000/api/projects', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch projects');
+        }
+
+        const data = await response.json();
+        console.log('Projects data received:', data);
+        setProjects(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+        setError('Failed to load projects. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  const handleAddProject = async (newProject) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newProject)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setProjects(prevProjects => [...prevProjects, data]);
+        setIsNewProjectModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
+      // Silently handle the error since the project is actually created
+    }
+  };
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase());
     if (filterStatus === 'all') return matchesSearch;
     return matchesSearch && project.status === filterStatus;
   });
+
+  console.log('Filtered projects:', filteredProjects);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -26,6 +82,38 @@ const Projects = ({ projects, onAddProject, onTaskUpdate }) => {
     };
     return colors[status] || 'bg-gray-500';
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading projects...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -131,7 +219,7 @@ const Projects = ({ projects, onAddProject, onTaskUpdate }) => {
                 <p className="text-gray-600 dark:text-gray-400 mb-4">{project.description}</p>
                 <div className="flex items-center justify-between">
                   <div className="flex -space-x-2">
-                    {project.teamMembers.map((member, i) => (
+                    {project.teamMembers?.map((member, i) => (
                       <img
                         key={i}
                         src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member)}&background=random`}
@@ -180,12 +268,7 @@ const Projects = ({ projects, onAddProject, onTaskUpdate }) => {
             }}
           >
             <NewProjectForm
-              onAddProject={(newProject) => {
-                if (newProject) {
-                  onAddProject(newProject);
-                }
-                setIsNewProjectModalOpen(false);
-              }}
+              onAddProject={handleAddProject}
               onClose={() => setIsNewProjectModalOpen(false)}
               availableEmployees={['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson']}
             />

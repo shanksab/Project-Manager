@@ -1,0 +1,171 @@
+WORKING VERSION OF THE CODE
+
+1. routes/api.php:
+```php
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\RegisterController;
+use Illuminate\Support\Facades\Auth;
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
+
+// Test route
+Route::get('/test', function() {
+    return response()->json(['message' => 'API is working']);
+});
+
+// Simple registration route without any middleware
+Route::post('/register', function(Request $request) {
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|min:6',
+    ]);
+
+    $user = \App\Models\User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+    ]);
+
+    return response()->json([
+        'message' => 'User registered successfully',
+        'user' => $user
+    ], 201);
+});
+
+// Simple login route without any middleware
+Route::post('/login', function(Request $request) {
+    $request->validate([
+        'email' => 'required|string|email',
+        'password' => 'required|string',
+    ]);
+
+    if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+        $user = Auth::user();
+        return response()->json([
+            'message' => 'Login successful',
+            'user' => $user
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'Invalid credentials'
+    ], 401);
+});
+```
+
+2. bootstrap/app.php:
+```php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware) {
+        //
+    })
+    ->withExceptions(function (Exceptions $exceptions) {
+        //
+    })->create();
+```
+
+3. frontend/src/pages/Signup.jsx (relevant part):
+```javascript
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('http://localhost:8000/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create account');
+      }
+
+      // Just navigate to login after successful registration
+      navigate('/login');
+    } catch (err) {
+      setError(err.message || 'Failed to create account');
+    } finally {
+      setIsLoading(false);
+    }
+};
+```
+
+4. frontend/src/pages/Login.jsx (relevant part):
+```javascript
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('http://localhost:8000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Navigate to dashboard after successful login
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+};
+```
+
+IMPORTANT NOTES:
+1. Make sure Laravel server is running: `php artisan serve`
+2. Test the API is working by visiting: http://localhost:8000/api/test
+3. The registration endpoint is: http://localhost:8000/api/register
+4. The login endpoint is: http://localhost:8000/api/login
+5. No authentication middleware is used - just simple user creation and login
+6. Database should be configured in .env file with MySQL settings
+
+To test if everything is working:
+1. Start Laravel server: `php artisan serve`
+2. Visit http://localhost:8000/api/test - should see {"message":"API is working"}
+3. Try registering a user through the frontend form
+4. Try logging in with the registered user 

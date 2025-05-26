@@ -224,8 +224,9 @@ const Teams = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [members] = useState(sampleMembers || []);
-  const [teams] = useState(sampleTeams || []);
+  const [members, setMembers] = useState(sampleMembers || []);
+  const [teams, setTeams] = useState(sampleTeams || []);
+  const [isLoading, setIsLoading] = useState(false);
 
   const departments = ['Management', 'Development', 'Design', 'Marketing', 'Operations'];
   const roles = ['Project Manager', 'Senior Developer', 'UI/UX Designer', 'Marketing Specialist', 'Operations Manager'];
@@ -266,26 +267,76 @@ const Teams = () => {
     teamMembers: []
   });
 
-  const handleAddMember = (e) => {
+  const handleAddMember = async (e) => {
     e.preventDefault();
-    // Add member logic here
-    setShowAddModal(false);
+    setIsLoading(true);
+    try {
+      console.log('Creating new member...', newMember);
+      const response = await fetch('http://localhost:8000/api/team-members', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          name: newMember.name,
+          email: newMember.email,
+          role: newMember.role,
+          department: newMember.department
+        })
+      });
+
+      const data = await response.json();
+      console.log('Member creation response:', data);
+      
+      if (response.ok) {
+        setMembers(prevMembers => [...prevMembers, data.member]);
+        setNewMember({ name: '', email: '', role: '', department: '', skills: [] });
+        setShowAddModal(false);
+        console.log('Member created successfully:', data.member);
+      } else {
+        console.error('Error creating member:', data.message);
+      }
+    } catch (error) {
+      console.error('Error creating member:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAddTeam = (e) => {
+  const handleAddTeam = async (e) => {
     e.preventDefault();
-    // Create new team logic
-    const newTeamData = {
-      id: teams.length + 1,
-      name: newTeam.name,
-      members: newTeam.teamMembers,
-      projects: [],
-      lead: newTeam.teamMembers[0] || null
-    };
-    
-    setTeams([...teams, newTeamData]);
-    setNewTeam({ name: '', teamMembers: [] }); // Reset form
-    setShowAddModal(false);
+    setIsLoading(true);
+    try {
+      console.log('Creating new team...', newTeam);
+      const response = await fetch('http://localhost:8000/api/teams', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          name: newTeam.name,
+          members: newTeam.teamMembers
+        })
+      });
+
+      const data = await response.json();
+      console.log('Team creation response:', data);
+      
+      if (response.ok) {
+        setTeams(prevTeams => [...prevTeams, data.team]);
+        setNewTeam({ name: '', teamMembers: [] });
+        setShowAddModal(false);
+        console.log('Team created successfully:', data.team);
+      } else {
+        console.error('Error creating team:', data.message);
+      }
+    } catch (error) {
+      console.error('Error creating team:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Enhanced render function for teams
@@ -394,11 +445,11 @@ const Teams = () => {
             <div className="flex space-x-3">
               <div className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Role</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{member.role}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{member.role || 'Not assigned'}</p>
               </div>
               <div className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Department</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{member.department}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{member.department || 'Not assigned'}</p>
               </div>
             </div>
 
@@ -424,6 +475,7 @@ const Teams = () => {
                 member.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
               }`} />
               <span className="text-sm text-gray-600 dark:text-gray-300 capitalize">
+                {member.status || 'inactive'}
                 {member.status}
               </span>
             </div>
@@ -580,11 +632,13 @@ const Teams = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 
+                    disabled={isLoading}
+                    className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 
                              hover:bg-blue-700 rounded-lg shadow-sm transition-colors
-                             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                             ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    Create Team
+                    {isLoading ? 'Creating...' : 'Create Team'}
                   </button>
                 </div>
               </form>

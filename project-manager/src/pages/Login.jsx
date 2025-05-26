@@ -35,20 +35,52 @@ const Login = ({ onAuthStateChange }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
     setIsLoading(true);
     setErrors({});
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('http://localhost:8000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Store user data and token if needed
+      localStorage.setItem('user', JSON.stringify(data.user));
       
-      // Mock successful login
-      const mockToken = 'mock-jwt-token';
-      localStorage.setItem('token', mockToken);
+      // Handle remember me
+      if (isRememberMe) {
+        localStorage.setItem('rememberMe', 'true');
+      } else {
+        localStorage.removeItem('rememberMe');
+      }
+
+      // Log success message
+      console.log('Login successful!', {
+        user: data.user,
+        message: 'Welcome back! Redirecting to dashboard...'
+      });
+
+      // Update auth state and navigate
       onAuthStateChange(true);
       navigate('/');
     } catch (err) {
-      setErrors({ submit: 'Invalid credentials' });
+      console.error('Login failed:', err.message);
+      setErrors({ submit: err.message || 'Invalid credentials' });
     } finally {
       setIsLoading(false);
     }
