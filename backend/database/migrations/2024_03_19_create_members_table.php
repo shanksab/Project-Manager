@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('role');
             $table->string('department');
-            $table->json('projects')->nullable();
+            $table->json('skills')->nullable();
             $table->string('status')->default('active');
             $table->timestamps();
         });

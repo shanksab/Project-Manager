@@ -2,21 +2,24 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Member extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
         'email',
         'role',
         'department',
-        'projects',
+        'skills',
         'status'
     ];
 
     protected $casts = [
-        'projects' => 'array'
+        'skills' => 'array'
     ];
 
     public function teams()

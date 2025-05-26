@@ -3,27 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
-use App\Models\Team;
-use App\Models\Member;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Get all data needed for dashboard
-        $data = [
-            'projects' => Project::all(),
-            'teams' => Team::all(),
-            'members' => Member::all(),
-            'stats' => [
-                'total_projects' => Project::count(),
-                'total_tasks' => Project::sum('progress'),
-                'completion_rate' => Project::avg('progress'),
-                'total_members' => Member::count(),
-            ]
-        ];
-
-        return response()->json($data);
+        try {
+            $projects = Project::all();
+            
+            return response()->json([
+                'projects' => $projects,
+                'total_projects' => $projects->count(),
+                'not_started' => $projects->where('status', 'Not Started')->count(),
+                'in_progress' => $projects->where('status', 'In Progress')->count(),
+                'completed' => $projects->where('status', 'Completed')->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch dashboard data'], 500);
+        }
     }
-} 
+}

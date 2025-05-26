@@ -11,14 +11,11 @@ class Team extends Model
 
     protected $fillable = [
         'name',
-        'members',
-        'projects',
-        'lead_id'
+        'members'
     ];
 
     protected $casts = [
-        'members' => 'array',
-        'projects' => 'array'
+        'members' => 'array'
     ];
 
     public function lead()

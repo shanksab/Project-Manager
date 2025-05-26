@@ -2,22 +2,31 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'user_id',
         'title',
         'description',
         'status',
         'progress',
-        'due_date',
-        'team_members'
+        'team_members',
+        'deadline_date'
     ];
 
     protected $casts = [
         'team_members' => 'array',
-        'due_date' => 'date'
+        'progress' => 'integer',
+        'deadline_date' => 'date'
     ];
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
 } 

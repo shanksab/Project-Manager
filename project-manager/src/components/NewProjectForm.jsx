@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 // Sample team members from Teams.jsx
@@ -54,69 +54,77 @@ const NewProjectForm = ({ onAddProject, onClose }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'In Progress',
-    due_date: '',
+    status: 'not_started',
+    progress: 0,
     team_members: [],
-    progress: 0
+    deadline_date: ''
   });
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [teams, setTeams] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      const response = await fetch('http://localhost:8000/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        onAddProject(data);
-        onClose();
-      } else {
-        console.error('Server Error:', data);
-        alert(`Failed to create project: ${data.error || 'Unknown error'}`);
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/teams');
+        if (!response.ok) {
+          throw new Error('Failed to fetch teams');
+        }
+        const data = await response.json();
+        setTeams(data);
+      } catch (error) {
+        console.error('Error fetching teams:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Network Error:', error);
-      alert(`Error creating project: ${error.message}`);
-    }
+    };
+
+    fetchTeams();
+  }, []);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Submitting form data:', formData);
+    onAddProject(formData);
   };
 
-  const handleTeamMemberChange = (userId) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      team_members: prev.team_members.includes(userId)
-        ? prev.team_members.filter(id => id !== userId)
-        : [...prev.team_members, userId]
+      [name]: value
     }));
   };
 
-  const filteredMembers = sampleMembers.filter(member =>
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleTeamMemberChange = (e) => {
+    const selectedTeam = teams.find(team => team.id === parseInt(e.target.value));
+    if (selectedTeam) {
+      setFormData(prev => ({
+        ...prev,
+        team_members: selectedTeam.members || []
+      }));
+    }
+  };
 
-  const selectedMembers = sampleMembers.filter(member => 
-    formData.team_members.includes(member.id)
-  );
+  if (isLoading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6">
+        <div className="flex justify-center items-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
       initial={{ scale: 0.95, y: 20 }}
       animate={{ scale: 1, y: 0 }}
       exit={{ scale: 0.95, y: 20 }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
     >
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Create New Project</h2>
           <button
@@ -139,8 +147,10 @@ const NewProjectForm = ({ onAddProject, onClose }) => {
           </label>
           <input
             type="text"
+            id="title"
+            name="title"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={handleChange}
             className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
                      bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             required
@@ -153,27 +163,13 @@ const NewProjectForm = ({ onAddProject, onClose }) => {
             Description
           </label>
           <textarea
+            id="description"
+            name="description"
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={handleChange}
             className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
                      bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             rows="3"
-            required
-          />
-        </div>
-
-        {/* Due Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Due Date
-          </label>
-          <input
-            type="date"
-            value={formData.due_date}
-            onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
-                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            required
           />
         </div>
 
@@ -183,88 +179,90 @@ const NewProjectForm = ({ onAddProject, onClose }) => {
             Status
           </label>
           <select
+            id="status"
+            name="status"
             value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            onChange={handleChange}
             className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
                      bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            required
           >
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="On Hold">On Hold</option>
-            <option value="Delayed">Delayed</option>
+            <option value="not_started">Not Started</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="on_hold">On Hold</option>
           </select>
         </div>
 
-        {/* Team Members */}
+        {/* Progress */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Team Members
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Progress (%)
           </label>
-          
-          {/* Selected Team Members */}
-          {selectedMembers.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Selected Members:</h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedMembers.map(member => (
-                  <div
-                    key={member.id}
-                    className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full"
-                  >
-                    <span className="text-sm">{member.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleTeamMemberChange(member.id)}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <input
+            type="number"
+            id="progress"
+            name="progress"
+            value={formData.progress}
+            onChange={handleChange}
+            min="0"
+            max="100"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          />
+        </div>
 
-          {/* Search and Select */}
-          <div className="space-y-2">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search team members by name, email, or role..."
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
-                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-            
-            <div className="space-y-2 max-h-48 overflow-y-auto p-2 border border-gray-200 dark:border-gray-700 rounded-lg">
-              {filteredMembers.map((member) => (
-                <label
-                  key={member.id}
-                  className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.team_members.includes(member.id)}
-                    onChange={() => handleTeamMemberChange(member.id)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-200">{member.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {member.role} • {member.email}
-                    </div>
-                  </div>
-                </label>
-              ))}
-              {filteredMembers.length === 0 && (
-                <div className="text-gray-500 dark:text-gray-400 text-sm p-2">
-                  No team members found matching your search.
-                </div>
-              )}
+        {/* Deadline Date */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Deadline Date
+          </label>
+          <input
+            type="date"
+            id="deadline_date"
+            name="deadline_date"
+            value={formData.deadline_date}
+            onChange={handleChange}
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          />
+        </div>
+
+        {/* Team Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Select Team
+          </label>
+          <select
+            onChange={handleTeamMemberChange}
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="">Select a team</option>
+            {teams.map(team => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Selected Team Members Display */}
+        {formData.team_members.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Selected Team Members
+            </label>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <ul className="space-y-2">
+                {formData.team_members.map((member, index) => (
+                  <li key={index} className="text-sm text-gray-600 dark:text-gray-300">
+                    {member}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Form Actions */}
         <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">

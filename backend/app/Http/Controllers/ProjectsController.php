@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Log;
 
 class ProjectsController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $projects = Project::all();
+            $userId = $request->query('user_id');
+            $projects = Project::where('user_id', $userId)->get();
             return response()->json($projects);
         } catch (\Exception $e) {
             Log::error('Error fetching projects: ' . $e->getMessage());
@@ -32,7 +33,12 @@ class ProjectsController extends Controller
                 'tasks' => 'nullable|array'
             ]);
 
-            $project = Project::create($validated);
+            // Get user_id from the request (query, body, or authenticated user)
+            $userId = $request->user()->id ?? $request->input('user_id') ?? $request->query('user_id');
+
+            $project = Project::create(array_merge($validated, [
+                'user_id' => $userId
+            ]));
             
             Log::info('Project created successfully', ['project_id' => $project->id]);
             return response()->json([

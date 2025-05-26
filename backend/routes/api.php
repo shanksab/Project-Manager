@@ -2,23 +2,65 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\ProjectController;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\TeamsController;
-use App\Http\Controllers\ProjectsController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\StatisticsController;
+use App\Http\Controllers\TeamsController;
+use App\Http\Controllers\TeamMemberController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Test route
+// Projects routes
+Route::get('/projects', [ProjectController::class, 'index']);
+Route::post('/projects', [ProjectController::class, 'store']);
+Route::get('/projects/{project}', [ProjectController::class, 'show']);
+Route::put('/projects/{project}', [ProjectController::class, 'update']);
+Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
+
+// Dashboard route
+Route::get('/dashboard', [DashboardController::class, 'index']);
+
+// Statistics route
+Route::get('/statistics', [StatisticsController::class, 'index']);
+
+// Simple test route
 Route::get('/test', function() {
     return response()->json(['message' => 'API is working']);
 });
 
-// Simple registration route without any middleware
+// Simple login route
+Route::post('/login', function(Request $request) {
+    $request->validate([
+        'email' => 'required|string|email',
+        'password' => 'required|string',
+    ]);
+
+    $user = \App\Models\User::where('email', $request->email)->first();
+    
+    if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+        return response()->json(['message' => 'Invalid credentials'], 401);
+    }
+
+    return response()->json([
+        'message' => 'Login successful',
+        'user' => $user
+    ]);
+});
+
+// Simple registration route
 Route::post('/register', function(Request $request) {
     $request->validate([
         'name' => 'required|string|max:255',
@@ -38,41 +80,16 @@ Route::post('/register', function(Request $request) {
     ], 201);
 });
 
-// Simple login route without any middleware
-Route::post('/login', function(Request $request) {
-    $request->validate([
-        'email' => 'required|string|email',
-        'password' => 'required|string',
-    ]);
-
-    if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-        $user = Auth::user();
-        return response()->json([
-            'message' => 'Login successful',
-            'user' => $user
-        ]);
-    }
-
-    return response()->json([
-        'message' => 'Invalid credentials'
-    ], 401);
-});
-
-// Projects routes
-Route::get('/projects', [ProjectsController::class, 'index']);
-Route::post('/projects', [ProjectsController::class, 'store']);
-Route::get('/projects/{project}', [ProjectsController::class, 'show']);
-Route::put('/projects/{project}', [ProjectsController::class, 'update']);
-Route::delete('/projects/{project}', [ProjectsController::class, 'destroy']);
-
-// Team routes
+// Teams routes
 Route::get('/teams', [TeamsController::class, 'index']);
 Route::post('/teams', [TeamsController::class, 'store']);
 Route::get('/teams/{team}', [TeamsController::class, 'show']);
 Route::put('/teams/{team}', [TeamsController::class, 'update']);
 Route::delete('/teams/{team}', [TeamsController::class, 'destroy']);
-Route::get('/team-members', [TeamsController::class, 'getMembers']);
-Route::post('/team-members', [TeamsController::class, 'addMember']);
 
-// Dashboard route
-Route::get('/dashboard', [DashboardController::class, 'index']); 
+// Team members routes
+Route::get('/team-members', [TeamMemberController::class, 'index']);
+Route::post('/team-members', [TeamMemberController::class, 'store']);
+Route::get('/team-members/{member}', [TeamMemberController::class, 'show']);
+Route::put('/team-members/{member}', [TeamMemberController::class, 'update']);
+Route::delete('/team-members/{member}', [TeamMemberController::class, 'destroy']); 

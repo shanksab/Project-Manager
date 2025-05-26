@@ -59,8 +59,9 @@ const Login = ({ onAuthStateChange }) => {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Store user data and token if needed
+      // Store user data and token
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token);
       
       // Handle remember me
       if (isRememberMe) {

@@ -15,16 +15,20 @@ function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Check for token in localStorage
+    // Check for token and user data in localStorage
     const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
     console.log('Token found:', !!token); // Debug log
-    if (token) {
+    if (token && userData) {
       setIsAuthenticated(true);
+      setUser(JSON.parse(userData));
       console.log('Setting isAuthenticated to true'); // Debug log
     } else {
       setIsAuthenticated(false);
+      setUser(null);
       console.log('Setting isAuthenticated to false'); // Debug log
     }
   }, []);
@@ -154,12 +158,12 @@ function App() {
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 
                              flex items-center justify-center text-white font-bold">
-                  JD
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">John Doe</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Project Manager</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name || 'User'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{user?.role || 'User'}</p>
               </div>
             </div>
           </div>

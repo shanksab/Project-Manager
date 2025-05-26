@@ -3,85 +3,72 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\Task;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProjectController extends Controller
 {
     public function index()
     {
-        return response()->json(Project::all());
+        return Project::with('tasks')->get();
     }
 
     public function store(Request $request)
     {
-        try {
-            Log::info('Received project data:', $request->all());
-            
-            // Validate the request data
-            $validator = Validator::make($request->all(), [
-                'title' => 'required|string|max:255',
-                'description' => 'required|string',
-                'status' => 'required|string',
-                'progress' => 'nullable|integer|min:0|max:100',
-                'due_date' => 'required|date',
-                'team_members' => 'nullable|array'
-            ]);
+        $validator = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'required|string|in:not_started,in_progress,completed,on_hold',
+            'progress' => 'nullable|integer|min:0|max:100',
+            'team_members' => 'nullable|array',
+            'team_members.*' => 'string',
+            'deadline_date' => 'nullable|date'
+        ]);
 
-            if ($validator->fails()) {
-                Log::error('Validation failed:', $validator->errors()->toArray());
-                return response()->json([
-                    'error' => 'Validation failed',
-                    'details' => $validator->errors()
-                ], 422);
-            }
-
-            DB::beginTransaction();
-            
-            try {
-                $project = Project::create([
-                    'user_id' => 1, // Default user ID
-                    'title' => $request->title,
-                    'description' => $request->description,
-                    'status' => $request->status,
-                    'progress' => $request->progress ?? 0,
-                    'due_date' => $request->due_date,
-                    'team_members' => $request->team_members ?? []
-                ]);
-
-                DB::commit();
-                Log::info('Project created successfully:', ['project' => $project]);
-                return response()->json($project, 201);
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (\Exception $e) {
-            Log::error('Error creating project: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
-            
-            return response()->json([
-                'error' => 'Failed to create project',
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ], 500);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
+
+        // Log the incoming request data
+        \Log::info('Creating project with data:', $request->all());
+
+        $project = Project::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'status' => $request->status,
+            'progress' => $request->progress ?? 0,
+            'team_members' => $request->team_members,
+            'deadline_date' => $request->deadline_date ? date('Y-m-d', strtotime($request->deadline_date)) : null
+        ]);
+
+        // Log the created project
+        \Log::info('Created project:', $project->toArray());
+
+        return response()->json($project, 201);
     }
 
     public function show(Project $project)
     {
-        return response()->json($project);
+        return $project->load('tasks');
     }
 
     public function update(Request $request, Project $project)
     {
+        $validator = Validator::make($request->all(), [
+            'title' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'sometimes|required|string|in:not_started,in_progress,completed,on_hold',
+            'progress' => 'nullable|integer|min:0|max:100',
+            'team_members' => 'nullable|array',
+            'team_members.*' => 'string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
         $project->update($request->all());
         return response()->json($project);
     }
@@ -89,6 +76,6 @@ class ProjectController extends Controller
     public function destroy(Project $project)
     {
         $project->delete();
-        return response()->json(['message' => 'Project deleted']);
+        return response()->json(null, 204);
     }
 } 

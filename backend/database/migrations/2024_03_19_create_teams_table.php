@@ -12,23 +12,12 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->json('members')->nullable();
-            $table->json('projects')->nullable();
-            $table->foreignId('lead_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->timestamps();
-        });
-
-        // Create pivot table for team members
-        Schema::create('team_member', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('team_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('team_member');
         Schema::dropIfExists('teams');
     }
 }; 

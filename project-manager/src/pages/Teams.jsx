@@ -1,232 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// Sample Data
-const sampleMembers = [
-  { 
-    id: 1, 
-    name: 'John Doe', 
-    role: 'Project Manager', 
-    department: 'Management',
-    email: 'john.doe@company.com',
-    projects: ['E-commerce Platform', 'Mobile App Development'],
-    status: 'active'
-  },
-  { 
-    id: 2, 
-    name: 'Jane Smith', 
-    role: 'Senior Developer', 
-    department: 'Development',
-    email: 'jane.smith@company.com',
-    projects: ['Dashboard Analytics', 'API Integration'],
-    status: 'active'
-  },
-  { 
-    id: 3, 
-    name: 'Mike Johnson', 
-    role: 'UI/UX Designer', 
-    department: 'Design',
-    email: 'mike.j@company.com',
-    projects: ['Website Redesign', 'Mobile App Development'],
-    status: 'active'
-  },
-  { 
-    id: 4, 
-    name: 'Sarah Wilson', 
-    role: 'Frontend Developer', 
-    department: 'Development',
-    email: 'sarah.w@company.com',
-    projects: ['Client Portal', 'Website Redesign'],
-    status: 'active'
-  },
-  { 
-    id: 5, 
-    name: 'Alex Brown', 
-    role: 'Backend Developer', 
-    department: 'Development',
-    email: 'alex.b@company.com',
-    projects: ['API Integration', 'Database Migration'],
-    status: 'active'
-  },
-  { 
-    id: 6, 
-    name: 'Emily Davis', 
-    role: 'Product Manager', 
-    department: 'Management',
-    email: 'emily.d@company.com',
-    projects: ['E-commerce Platform', 'Mobile App'],
-    status: 'active'
-  },
-  { 
-    id: 7, 
-    name: 'David Lee', 
-    role: 'DevOps Engineer', 
-    department: 'Operations',
-    email: 'david.l@company.com',
-    projects: ['Cloud Migration', 'CI/CD Pipeline'],
-    status: 'active'
-  },
-  { 
-    id: 8, 
-    name: 'Lisa Chen', 
-    role: 'QA Engineer', 
-    department: 'Quality Assurance',
-    email: 'lisa.c@company.com',
-    projects: ['Testing Automation', 'Quality Metrics'],
-    status: 'active'
-  },
-  { 
-    id: 9, 
-    name: 'Tom Wilson', 
-    role: 'System Architect', 
-    department: 'Development',
-    email: 'tom.w@company.com',
-    projects: ['System Architecture', 'Performance Optimization'],
-    status: 'active'
-  },
-  { 
-    id: 10, 
-    name: 'Rachel Green', 
-    role: 'Graphic Designer', 
-    department: 'Design',
-    email: 'rachel.g@company.com',
-    projects: ['Brand Identity', 'Marketing Materials'],
-    status: 'active'
-  }
-];
-
-const sampleProjects = [
-  {
-    id: 1,
-    name: 'Website Redesign',
-    status: 'in-progress',
-    progress: 65,
-    members: [1, 3, 4]
-  },
-  {
-    id: 2,
-    name: 'Mobile App',
-    status: 'in-progress',
-    progress: 40,
-    members: [1, 3, 6]
-  },
-  {
-    id: 3,
-    name: 'E-commerce Platform',
-    status: 'planning',
-    progress: 15,
-    members: [2, 6]
-  },
-  {
-    id: 4,
-    name: 'API Integration',
-    status: 'in-progress',
-    progress: 80,
-    members: [2, 5]
-  },
-  {
-    id: 5,
-    name: 'Dashboard UI',
-    status: 'completed',
-    progress: 100,
-    members: [4]
-  },
-  {
-    id: 6,
-    name: 'Client Portal',
-    status: 'in-progress',
-    progress: 55,
-    members: [4, 5]
-  },
-  {
-    id: 7,
-    name: 'Database Migration',
-    status: 'planning',
-    progress: 10,
-    members: [5, 7]
-  },
-  {
-    id: 8,
-    name: 'Cloud Migration',
-    status: 'in-progress',
-    progress: 70,
-    members: [7]
-  },
-  {
-    id: 9,
-    name: 'Testing Automation',
-    status: 'completed',
-    progress: 100,
-    members: [8]
-  },
-  {
-    id: 10,
-    name: 'Brand Identity',
-    status: 'in-progress',
-    progress: 85,
-    members: [10]
-  }
-];
-
-const sampleTeams = [
-  {
-    id: 1,
-    name: 'Frontend Team',
-    members: [3, 4],
-    projects: ['Website Redesign', 'Client Portal', 'Mobile App Development']
-  },
-  {
-    id: 2,
-    name: 'Backend Team',
-    members: [2, 5],
-    projects: ['API Integration', 'Database Migration', 'Authentication System']
-  },
-  {
-    id: 3,
-    name: 'Design Team',
-    members: [3],
-    projects: ['UI Kit Development', 'Brand Guidelines', 'Website Redesign']
-  },
-  {
-    id: 4,
-    name: 'Product Team',
-    members: [1, 2, 3],
-    projects: ['E-commerce Platform', 'Dashboard Analytics']
-  },
-  {
-    id: 5,
-    name: 'DevOps Team',
-    members: [5],
-    projects: ['CI/CD Pipeline', 'Cloud Infrastructure', 'Security Audit']
-  },
-  {
-    id: 6,
-    name: 'Mobile Development',
-    members: [2, 4, 5],
-    projects: ['Mobile App Development', 'Client Portal'],
-  },
-  {
-    id: 7,
-    name: 'QA Team',
-    members: [8],
-    projects: ['Testing Automation']
-  },
-  {
-    id: 8,
-    name: 'Architecture Team',
-    members: [9, 5, 7],
-    projects: ['Database Migration', 'Cloud Infrastructure']
-  }
-];
 
 const Teams = () => {
   const [activeTab, setActiveTab] = useState('teams');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [members, setMembers] = useState(sampleMembers || []);
-  const [teams, setTeams] = useState(sampleTeams || []);
+  const [members, setMembers] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const userId = user?.id;
+      try {
+        const [teamsRes, membersRes] = await Promise.all([
+          fetch(`http://localhost:8000/api/teams?user_id=${userId}`),
+          fetch(`http://localhost:8000/api/team-members?user_id=${userId}`)
+        ]);
+        const teamsData = await teamsRes.json();
+        const membersData = await membersRes.json();
+        setTeams(Array.isArray(teamsData) ? teamsData : []);
+        setMembers(Array.isArray(membersData) ? membersData : []);
+      } catch (error) {
+        setTeams([]);
+        setMembers([]);
+      }
+    };
+    fetchData();
+  }, []);
 
   const departments = ['Management', 'Development', 'Design', 'Marketing', 'Operations'];
   const roles = ['Project Manager', 'Senior Developer', 'UI/UX Designer', 'Marketing Specialist', 'Operations Manager'];
@@ -308,7 +111,17 @@ const Teams = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      console.log('Creating new team...', newTeam);
+      // Get member names from the selected member IDs
+      const selectedMemberNames = newTeam.teamMembers.map(memberId => {
+        const member = members.find(m => m.id === memberId);
+        return member ? member.name : null;
+      }).filter(Boolean);
+
+      console.log('Creating new team...', {
+        name: newTeam.name,
+        members: selectedMemberNames
+      });
+
       const response = await fetch('http://localhost:8000/api/teams', {
         method: 'POST',
         headers: {
@@ -317,7 +130,7 @@ const Teams = () => {
         },
         body: JSON.stringify({
           name: newTeam.name,
-          members: newTeam.teamMembers
+          members: selectedMemberNames
         })
       });
 
@@ -325,10 +138,10 @@ const Teams = () => {
       console.log('Team creation response:', data);
       
       if (response.ok) {
-        setTeams(prevTeams => [...prevTeams, data.team]);
+        setTeams(prevTeams => [...prevTeams, data]);
         setNewTeam({ name: '', teamMembers: [] });
         setShowAddModal(false);
-        console.log('Team created successfully:', data.team);
+        console.log('Team created successfully:', data);
       } else {
         console.error('Error creating team:', data.message);
       }
@@ -532,8 +345,24 @@ const Teams = () => {
 
       {/* Content Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {activeTab === 'teams' && renderTeams()}
-        {activeTab === 'members' && renderMembers()}
+        {activeTab === 'teams' && (
+          teams.length === 0 ? (
+            <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-md p-8 min-h-[180px] col-span-3">
+              <div className="text-gray-400 text-5xl mb-2">👥</div>
+              <div className="text-lg text-gray-500 mb-1">No teams yet</div>
+              <div className="text-sm text-gray-400">Create your first team to see it here.</div>
+            </div>
+          ) : renderTeams()
+        )}
+        {activeTab === 'members' && (
+          members.length === 0 ? (
+            <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-md p-8 min-h-[180px] col-span-3">
+              <div className="text-gray-400 text-5xl mb-2">🧑‍💼</div>
+              <div className="text-lg text-gray-500 mb-1">No members yet</div>
+              <div className="text-sm text-gray-400">Add your first member to see them here.</div>
+            </div>
+          ) : renderMembers()
+        )}
       </div>
 
       {/* Add Team Modal */}
