@@ -30,23 +30,20 @@ const DashboardCharts = ({ projects }) => {
   const completedProjects = projects.filter(p => p.status === 'completed').length;
   const inProgressProjects = projects.filter(p => p.status === 'in_progress').length;
   const notStartedProjects = projects.filter(p => p.status === 'not_started').length;
-  const onHoldProjects = projects.filter(p => p.status === 'on_hold').length;
 
   const pieChartData = {
-    labels: ['Completed', 'In Progress', 'Not Started', 'On Hold'],
+    labels: ['Completed', 'In Progress', 'Not Started'],
     datasets: [{
-      data: [completedProjects, inProgressProjects, notStartedProjects, onHoldProjects],
+      data: [completedProjects, inProgressProjects, notStartedProjects],
       backgroundColor: [
         'rgb(34, 197, 94)',  // green-500
         'rgb(59, 130, 246)', // blue-500
         'rgb(245, 158, 11)', // amber-500
-        'rgb(234, 179, 8)',  // yellow-500
       ],
       borderColor: [
         'rgb(22, 163, 74)',  // green-600
         'rgb(37, 99, 235)',  // blue-600
         'rgb(217, 119, 6)',  // amber-600
-        'rgb(202, 138, 4)',  // yellow-600
       ],
       borderWidth: 2,
       hoverOffset: 15,

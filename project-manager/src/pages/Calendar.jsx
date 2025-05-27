@@ -8,17 +8,8 @@ const Calendar = ({ projects }) => {
   const [showEventModal, setShowEventModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
-  const [events, setEvents] = useState(() => {
-    const savedEvents = localStorage.getItem('calendarEvents');
-    if (savedEvents) {
-      return JSON.parse(savedEvents).map(event => ({
-        ...event,
-        start: new Date(event.start),
-        end: new Date(event.end)
-      }));
-    }
-    return [];
-  });
+  const [events, setEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
@@ -27,9 +18,119 @@ const Calendar = ({ projects }) => {
     color: 'blue'
   });
 
+  // Fetch events from the API
   useEffect(() => {
-    localStorage.setItem('calendarEvents', JSON.stringify(events));
-  }, [events]);
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/calendar-events', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setEvents(data.map(event => ({
+            ...event,
+            start: new Date(event.start_time),
+            end: new Date(event.end_time)
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      }
+    };
+    fetchEvents();
+  }, []);
+
+  const handleAddEvent = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const eventDate = new Date(selectedDate);
+      const [startHours, startMinutes] = newEvent.startTime.split(':');
+      const [endHours, endMinutes] = newEvent.endTime.split(':');
+      
+      const startDate = new Date(eventDate);
+      startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0);
+      
+      const endDate = new Date(eventDate);
+      endDate.setHours(parseInt(endHours), parseInt(endMinutes), 0);
+
+      const token = localStorage.getItem('token');
+      console.log('Auth token:', token);
+
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const requestData = {
+        title: newEvent.title,
+        description: newEvent.description,
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+        color: newEvent.color
+      };
+
+      console.log('Sending request with data:', requestData);
+
+      const response = await fetch('http://localhost:8000/api/calendar-events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      const responseData = await response.json();
+      console.log('Response:', responseData);
+
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to create event');
+      }
+
+      setEvents(prevEvents => [...prevEvents, {
+        ...responseData,
+        start: new Date(responseData.start_time),
+        end: new Date(responseData.end_time)
+      }]);
+      setShowEventModal(false);
+      setNewEvent({
+        title: '',
+        description: '',
+        startTime: '09:00',
+        endTime: '10:00',
+        color: 'blue'
+      });
+    } catch (error) {
+      console.error('Error creating event:', error);
+      alert('Failed to create event: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!eventToDelete) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8000/api/calendar-events/${eventToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        setEvents(prevEvents => prevEvents.filter(event => event.id !== eventToDelete.id));
+        setShowDeleteModal(false);
+        setEventToDelete(null);
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+    }
+  };
 
   const colorOptions = [
     { name: 'Blue', value: 'blue' },
@@ -38,44 +139,6 @@ const Calendar = ({ projects }) => {
     { name: 'Purple', value: 'purple' },
     { name: 'Yellow', value: 'yellow' }
   ];
-
-  const handleAddEvent = (e) => {
-    e.preventDefault();
-    const eventDate = new Date(selectedDate);
-    const [startHours, startMinutes] = newEvent.startTime.split(':');
-    const [endHours, endMinutes] = newEvent.endTime.split(':');
-    
-    const startDate = new Date(eventDate);
-    startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0);
-    
-    const endDate = new Date(eventDate);
-    endDate.setHours(parseInt(endHours), parseInt(endMinutes), 0);
-    
-    const event = {
-      id: Date.now(),
-      title: newEvent.title,
-      description: newEvent.description,
-      start: startDate,
-      end: endDate,
-      color: newEvent.color
-    };
-
-    setEvents(prevEvents => [...prevEvents, event]);
-    setShowEventModal(false);
-    setNewEvent({
-      title: '',
-      description: '',
-      startTime: '09:00',
-      endTime: '10:00',
-      color: 'blue'
-    });
-  };
-
-  const handleDeleteEvent = () => {
-    setEvents(prevEvents => prevEvents.filter(event => event.id !== eventToDelete.id));
-    setShowDeleteModal(false);
-    setEventToDelete(null);
-  };
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();

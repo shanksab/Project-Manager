@@ -11,15 +11,17 @@ class Task extends Model
     use HasFactory;
 
     protected $fillable = [
-        'text',
-        'completed',
-        'project_id',
-        'department'
+        'title',
+        'status',
+        'project_id'
     ];
 
     protected $casts = [
-        'completed' => 'boolean'
+        'status' => 'boolean'
     ];
+
+    const STATUS_FINISHED = true;
+    const STATUS_NOT_FINISHED = false;
 
     public function project(): BelongsTo
     {

@@ -13,8 +13,8 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->string('status')->default('not_started');
-            $table->json('team_members')->nullable();
             $table->integer('progress')->default(0);
+            $table->json('team_members')->nullable();
             $table->date('deadline_date')->nullable();
             $table->timestamps();
         });

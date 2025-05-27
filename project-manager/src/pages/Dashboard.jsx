@@ -88,15 +88,56 @@ const Dashboard = () => {
   const totalProjects = projects.length;
   const totalTasks = projects.reduce((acc, project) => acc + (project.tasks?.length || 0), 0);
   const completedTasks = projects.reduce(
-    (acc, project) => acc + (project.tasks?.filter(task => task.completed).length || 0),
+    (acc, project) => acc + (project.tasks?.filter(task => task.status === 1).length || 0),
     0
   );
   const inProgressTasks = totalTasks - completedTasks;
   const notStartedTasks = 0; // Assuming no tasks are not started
-  const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const completedProjects = projects.filter(project => project.status === 'completed').length;
+  const progressPercentage = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0;
 
   // Get all unique employees across projects
   const availableEmployees = [...new Set(projects.flatMap(project => project.team_members || []))];
+
+  // Calculate monthly changes
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  const projectsThisMonth = projects.filter(project => {
+    const projectDate = new Date(project.created_at);
+    return projectDate.getMonth() === currentMonth && projectDate.getFullYear() === currentYear;
+  }).length;
+
+  const tasksThisWeek = projects.reduce((acc, project) => {
+    const projectTasks = project.tasks || [];
+    const tasksThisWeek = projectTasks.filter(task => {
+      const taskDate = new Date(task.created_at);
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      return taskDate >= oneWeekAgo;
+    }).length;
+    return acc + tasksThisWeek;
+  }, 0);
+
+  const lastMonthCompleted = projects.filter(project => {
+    const projectDate = new Date(project.created_at);
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    return projectDate.getMonth() === lastMonth.getMonth() && 
+           projectDate.getFullYear() === lastMonth.getFullYear() &&
+           project.status === 'completed';
+  }).length;
+
+  const lastMonthTotal = projects.filter(project => {
+    const projectDate = new Date(project.created_at);
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    return projectDate.getMonth() === lastMonth.getMonth() && 
+           projectDate.getFullYear() === lastMonth.getFullYear();
+  }).length;
+
+  const lastMonthProgress = lastMonthTotal > 0 ? Math.round((lastMonthCompleted / lastMonthTotal) * 100) : 0;
+  const progressChange = progressPercentage - lastMonthProgress;
 
   // Update the pie chart data configuration
   const pieChartData = {
@@ -149,22 +190,30 @@ const Dashboard = () => {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-gray-600 mb-2">Total Projects</h3>
           <p className="text-3xl font-bold mb-2">{totalProjects}</p>
-          <div className="text-green-600 text-sm">+2 this month</div>
+          <div className={`${projectsThisMonth > 0 ? 'text-green-600' : 'text-gray-600'} text-sm`}>
+            {projectsThisMonth > 0 ? `+${projectsThisMonth} this month` : 'No new projects this month'}
+          </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-gray-600 mb-2">Active Tasks</h3>
           <p className="text-3xl font-bold mb-2">{totalTasks}</p>
-          <div className="text-green-600 text-sm">+5 this week</div>
+          <div className="text-gray-600 text-sm">
+            {completedTasks} completed tasks
+          </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-gray-600 mb-2">Completion Rate</h3>
           <p className="text-3xl font-bold mb-2">{progressPercentage}%</p>
-          <div className="text-green-600 text-sm">+10% this month</div>
+          <div className={`${progressChange > 0 ? 'text-green-600' : progressChange < 0 ? 'text-red-600' : 'text-gray-600'} text-sm`}>
+            {completedProjects} of {totalProjects} projects completed
+          </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-gray-600 mb-2">Team Members</h3>
           <p className="text-3xl font-bold mb-2">{availableEmployees.length}</p>
-          <div className="text-green-600 text-sm">+3 this month</div>
+          <div className="text-gray-600 text-sm">
+            {availableEmployees.length} active members
+          </div>
         </div>
       </div>
 

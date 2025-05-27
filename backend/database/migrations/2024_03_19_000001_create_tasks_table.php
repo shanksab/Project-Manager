@@ -11,9 +11,8 @@ return new class extends Migration
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('project_id')->constrained()->onDelete('cascade');
-            $table->string('text');
-            $table->boolean('completed')->default(false);
-            $table->string('department')->default('Development');
+            $table->string('title');
+            $table->boolean('status')->default(false);  // false = not finished, true = finished
             $table->timestamps();
         });
     }

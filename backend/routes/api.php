@@ -7,6 +7,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\TeamMemberController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\CalendarEventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -92,4 +94,16 @@ Route::get('/team-members', [TeamMemberController::class, 'index']);
 Route::post('/team-members', [TeamMemberController::class, 'store']);
 Route::get('/team-members/{member}', [TeamMemberController::class, 'show']);
 Route::put('/team-members/{member}', [TeamMemberController::class, 'update']);
-Route::delete('/team-members/{member}', [TeamMemberController::class, 'destroy']); 
+Route::delete('/team-members/{member}', [TeamMemberController::class, 'destroy']);
+
+// Task routes
+Route::apiResource('tasks', TaskController::class);
+
+// Calendar Events Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/calendar-events', [CalendarEventController::class, 'index']);
+    Route::post('/calendar-events', [CalendarEventController::class, 'store']);
+    Route::get('/calendar-events/{event}', [CalendarEventController::class, 'show']);
+    Route::put('/calendar-events/{event}', [CalendarEventController::class, 'update']);
+    Route::delete('/calendar-events/{event}', [CalendarEventController::class, 'destroy']);
+}); 

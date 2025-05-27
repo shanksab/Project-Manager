@@ -118,13 +118,16 @@ const Projects = () => {
   console.log('Filtered projects:', filteredProjects);
 
   const getStatusColor = (status) => {
-    const colors = {
-      'In Progress': 'bg-blue-500',
-      'Completed': 'bg-green-500',
-      'On Hold': 'bg-yellow-500',
-      'Delayed': 'bg-red-500'
-    };
-    return colors[status] || 'bg-gray-500';
+    switch (status) {
+      case 'In Progress':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200';
+      case 'Completed':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200';
+      case 'On Hold':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+    }
   };
 
   if (isLoading) {
@@ -212,7 +215,6 @@ const Projects = () => {
               <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
               <option value="On Hold">On Hold</option>
-              <option value="Delayed">Delayed</option>
             </select>
           </div>
           <div className="md:col-span-2">
@@ -256,103 +258,11 @@ const Projects = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden
-                           transform transition-all duration-200 hover:shadow-xl hover:scale-[1.02]
-                           ${viewMode === 'grid' ? '' : 'flex items-center'}
-                           border-t-4 ${
-                             project.status === 'completed' ? 'border-green-500' :
-                             project.status === 'in_progress' ? 'border-blue-500' :
-                             project.status === 'on_hold' ? 'border-yellow-500' :
-                             'border-gray-500'
-                           }`}
               >
-                <div className={`p-6 ${viewMode === 'list' ? 'flex-1' : ''}`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">{project.title}</h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      project.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                      project.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                      project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                      'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                    }`}>
-                      {project.status.replace('_', ' ').charAt(0).toUpperCase() + project.status.slice(1).replace('_', ' ')}
-                    </span>
-                  </div>
-                  
-                  <p className="text-gray-600 dark:text-gray-400 mb-6 line-clamp-2">{project.description}</p>
-                  
-                  <div className="mb-6">
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Progress</span>
-                      <span className="font-medium">{project.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                      <div 
-                        className={`h-2.5 rounded-full transition-all duration-500 ${
-                          project.status === 'completed' ? 'bg-green-500' :
-                          project.status === 'in_progress' ? 'bg-blue-500' :
-                          project.status === 'on_hold' ? 'bg-yellow-500' :
-                          'bg-gray-500'
-                        }`}
-                        style={{ width: `${project.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-3 text-sm text-gray-600 dark:text-gray-400">
-                    <div className="flex justify-between items-center">
-                      <span>Due Date:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {project.deadline_date ? new Date(project.deadline_date).toLocaleDateString() : 'No due date'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Tasks:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{project.tasks?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Team Members:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{project.team_members?.length || 0}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleUpdateProject({ ...project, status: 'completed', progress: 100 })}
-                        className="p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 
-                                 bg-green-50 dark:bg-green-900/30 rounded-full hover:bg-green-100 dark:hover:bg-green-900/50
-                                 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
-                        title="Mark as Completed"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleUpdateProject({ ...project, status: 'on_hold' })}
-                        className="p-2 text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 
-                                 bg-yellow-50 dark:bg-yellow-900/30 rounded-full hover:bg-yellow-100 dark:hover:bg-yellow-900/50
-                                 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50"
-                        title="Put on Hold"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </button>
-                    </div>
-                    <Link 
-                      to={`/projects/${project.id}`}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 
-                               font-medium transition-colors duration-200 flex items-center space-x-1"
-                    >
-                      <span>View Details</span>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
-                  </div>
-                </div>
+                <ProjectCard 
+                  project={project} 
+                  onUpdateProject={handleUpdateProject}
+                />
               </motion.div>
             ))}
           </div>
@@ -370,7 +280,7 @@ const Projects = () => {
             style={{
               backgroundColor: 'rgba(0, 0, 0, 0.2)',
               backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)' // For Safari support
+              WebkitBackdropFilter: 'blur(4px)'
             }}
           >
             <NewProjectForm
